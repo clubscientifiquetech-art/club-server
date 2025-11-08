@@ -1,11 +1,14 @@
 import fs from "fs";
 import Gallery from "../models/Gallery.js";
+import { syncUploads } from "../utils/pushUploads.js";
 
 export const createGallery = async (req, res) => {
   try {
     const { activity, title, date } = req.body;
     if (!activity || !title || !date)
-      return res.status(400).json({ message: "Activity, title, and date are required" });
+      return res
+        .status(400)
+        .json({ message: "Activity, title, and date are required" });
 
     const gallery = new Gallery({ activity, title, date });
     await gallery.save();
@@ -27,10 +30,11 @@ export const uploadImages = async (req, res) => {
     const gallery = await Gallery.findById(id);
     if (!gallery) return res.status(404).json({ message: "Gallery not found" });
 
-    files.forEach(file => gallery.images.push(file.filename));
+    files.forEach((file) => gallery.images.push(file.filename));
     if (!gallery.thumbnail) gallery.thumbnail = gallery.images[0];
 
     await gallery.save();
+    await syncUploads();
     res.status(200).json({ message: "Images uploaded", gallery });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -44,12 +48,13 @@ export const deleteGallery = async (req, res) => {
     if (!gallery) return res.status(404).json({ message: "Gallery not found" });
 
     // Delete images from disk
-    gallery.images.forEach(img => {
+    gallery.images.forEach((img) => {
       const path = `src/uploads/${img}`;
       if (fs.existsSync(path)) fs.unlinkSync(path);
     });
 
     await Gallery.deleteOne({ _id: id });
+    await syncUploads();
     res.status(200).json({ message: "Gallery deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -68,14 +73,15 @@ export const deleteImages = async (req, res) => {
     if (!gallery) return res.status(404).json({ message: "Gallery not found" });
 
     // Delete files from disk and remove from gallery.images
-    filenames.forEach(file => {
+    filenames.forEach((file) => {
       const path = `src/uploads/${file}`;
       if (fs.existsSync(path)) fs.unlinkSync(path);
     });
-    gallery.images = gallery.images.filter(img => !filenames.includes(img));
+    gallery.images = gallery.images.filter((img) => !filenames.includes(img));
     gallery.thumbnail = gallery.images[0] || undefined;
 
     await gallery.save();
+    await syncUploads();
     res.status(200).json({ message: "Images deleted", gallery });
   } catch (err) {
     res.status(500).json({ message: err.message });
