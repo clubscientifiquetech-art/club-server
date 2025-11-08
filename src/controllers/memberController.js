@@ -2,8 +2,12 @@ import jwt from "jsonwebtoken";
 import Member from "../models/Member.js";
 
 export const getAllMembers = async (req, res) => {
-  const members = await Member.find();
-  res.json(members);
+  try {
+    const members = await Member.find({}, { password: 0 });
+    res.json(members);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 export const registerMember = async (req, res) => {
