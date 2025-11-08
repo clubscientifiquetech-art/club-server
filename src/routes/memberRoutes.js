@@ -1,15 +1,19 @@
 import express from "express";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { authMiddleware, adminOnly } from "../middlewares/authMiddleware.js";
 import {
-  getMembers,
-  createMember,
-  deleteMember,
+  getAllMembers,
+  registerMember,
+  removeMember,
+  loginMember,
+  verifyMember,
 } from "../controllers/memberController.js";
 
 const router = express.Router();
 
-router.get("/", getMembers);
-router.post("/create", authMiddleware, createMember);
-router.delete("/delete/:id", authMiddleware, deleteMember);
+router.get("/", getAllMembers);
+router.post("/", registerMember);
+router.post("/login", loginMember);
+router.post("/verify/:id", authMiddleware, adminOnly, verifyMember);
+router.delete("/:id", authMiddleware, adminOnly, removeMember);
 
 export default router;
