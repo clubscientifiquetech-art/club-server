@@ -44,6 +44,9 @@ export const loginMember = async (req, res) => {
     if (!member)
       return res.status(400).json({ message: "Invalid username or password" });
 
+    if (!member.verified)
+      return res.status(400).json({ message: "Member not verified" });
+
     const isMatch = await member.comparePassword(password);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid username or password" });
