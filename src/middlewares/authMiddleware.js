@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import Member from "../models/Member.js";
 
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -11,7 +12,15 @@ export const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    // verify user still exists
+    const member = await Member.findById(decoded.id);
+    if (!member) {
+      return res.status(401).json({ message: "User no longer exists" });
+    }
+
+    // Attach full user info to the request
+    req.user = { id: member._id, username: member.username };
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
