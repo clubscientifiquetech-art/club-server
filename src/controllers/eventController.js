@@ -43,24 +43,16 @@ export const deleteEvent = async (req, res) => {
 
 export const joinEvent = async (req, res) => {
   try {
-    const { id } = req.params;
-    const event = await Event.findById(id);
+    const { id: eventId } = req.params;
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
 
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
-    }
-
-    const memberId = req.user?.id;
-    if (!memberId) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: Member ID missing" });
-    }
+    const { memberId, username } = req.member;
 
     if (event.members.includes(memberId)) {
       return res
         .status(400)
-        .json({ message: "You have already joined this event" });
+        .json({ message: "Member already joined this event" });
     }
 
     if (event.members.length >= event.memberLimit) {
@@ -70,7 +62,38 @@ export const joinEvent = async (req, res) => {
     event.members.push(memberId);
     await event.save();
 
-    res.status(200).json({ message: "Successfully joined the event", event });
+    res
+      .status(200)
+      .json({ message: `${username} successfully joined the event`, event });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const leaveEvent = async (req, res) => {
+  try {
+    const { id: eventId } = req.params;
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const { memberId, username } = req.member;
+
+    if (!event.members.includes(memberId)) {
+      return res
+        .status(400)
+        .json({ message: "Member is not part of this event" });
+    }
+
+    event.members = event.members.filter(
+      (id) => id.toString() !== memberId.toString()
+    );
+
+    await event.save();
+
+    res
+      .status(200)
+      .json({ message: `${username} successfully left the event`, event });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });

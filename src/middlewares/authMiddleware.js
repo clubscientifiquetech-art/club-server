@@ -27,18 +27,21 @@ export const adminOnly = (req, res, next) => {
 
 export const loadMember = async (req, res, next) => {
   try {
-    if (!req.user?.id) {
+    let memberId =
+      req.user.role === "admin" ? req.params?.memberId : req.user?.id;
+
+    if (!memberId) {
       return res
         .status(401)
         .json({ message: "Unauthorized: Member ID missing" });
     }
 
-    const member = await Member.findById(req.user.id);
+    const member = await Member.findById(memberId);
     if (!member) {
       return res.status(401).json({ message: "User no longer exists" });
     }
 
-    req.member = member;
+    req.member = { memberId: member._id, username: member.username };
     next();
   } catch (err) {
     return res.status(500).json({ message: "Internal server error" });
